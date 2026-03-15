@@ -1,0 +1,42 @@
+@import "tailwindcss";
+@config "../tailwind.config.ts";
+
+@layer base {
+  html {
+    font-family: 'DM Sans', sans-serif;
+    background-color: #FAF4EC;
+    color: #1C1508;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-primary text-white font-medium px-5 py-2.5 rounded-brand transition-colors hover:bg-primary-dark active:scale-95;
+  }
+
+  .btn-secondary {
+    @apply bg-transparent text-primary border border-primary font-medium px-5 py-2.5 rounded-brand transition-colors hover:bg-primary-light;
+  }
+
+  .btn-ghost {
+    @apply bg-cream text-ink border border-[#E0D5CC] font-medium px-5 py-2.5 rounded-brand transition-colors hover:bg-[#F0E8DC];
+  }
+
+  .tag {
+    @apply text-xs font-medium px-2.5 py-1 rounded-full inline-block;
+  }
+
+  .tag-primary { @apply text-xs font-medium px-2.5 py-1 rounded-full inline-block bg-primary-light text-primary-dark; }
+  .tag-active  { @apply text-xs font-medium px-2.5 py-1 rounded-full inline-block bg-green-light text-green-brand; }
+  .tag-pending { @apply text-xs font-medium px-2.5 py-1 rounded-full inline-block bg-amber-light text-primary-dark; }
+
+  .card {
+    @apply bg-white border border-[#E0D5CC] rounded-[12px] p-4;
+  }
+}

@@ -163,3 +163,14 @@ VITE_API_URL=http://localhost:3000/api/v1
 
 - Attendance cancellation: upsert with `confirmed: false` via `attendancesService.upsert(marketId, { date, confirmed: false })`. There is no DELETE endpoint.
 - The `MarketSchedule` type is intentionally opaque (`Record<string, unknown>`) until the schedule format is formalized.
+
+## Specialized agents
+
+Four sub-agents are available in `.claude/agents/` for targeted tasks:
+
+| Agent | When to use |
+|---|---|
+| `web-architect` | Design new pages, hooks, services, schemas, and components |
+| `web-standards` | Research React/Vite/Tailwind/PWA/accessibility best practices and apply them |
+| `web-reviewer` | Read-only code review: architecture, security, convention audit |
+| `web-tester` | Scaffold Vitest + React Testing Library tests for hooks, components, services |

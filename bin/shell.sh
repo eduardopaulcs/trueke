@@ -1,2 +1,2 @@
 #!/bin/sh
-docker compose exec api sh
+docker compose exec "$1" sh

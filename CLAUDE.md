@@ -15,17 +15,22 @@ See `web/CLAUDE.md` and `api/CLAUDE.md` for per-project details.
 
 ## Key commands
 
+> **CRITICAL: ALL `npm`, `npx`, and `prisma` commands MUST run inside the Docker container — for both `api/` and `web/`.**
+> Never run them on the host. Always use:
+> ```bash
+> docker compose exec api <command>
+> docker compose exec web <command>
+> ```
+
 ```bash
-# Root
-cd web && npm run dev        # start frontend dev server
-cd api && npm run start:dev  # start backend dev server
+# API
+docker compose exec api npm run start:dev
+docker compose exec api npm run typecheck
+docker compose exec api npx prisma migrate dev
 
-# Run both
-npm run dev                  # if root package.json scripts are configured
-
-# Type check everything
-cd web && npm run typecheck
-cd api && npm run typecheck
+# Web
+docker compose exec web npm run dev
+docker compose exec web npm run typecheck
 ```
 
 ## Domain model

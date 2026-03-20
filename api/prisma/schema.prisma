@@ -1,0 +1,116 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Users & Roles ─────────────────────────────────────────────────────────
+
+model User {
+  id       String   @id @default(cuid())
+  name     String
+  email    String   @unique
+  password String
+  roles    String[] @default(["visitor"])
+
+  following Follow[]
+  brands    Brand[]
+  markets   Market[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+}
+
+// Brand (vendor profile) — kept separate from User to allow multiple brands per user
+model Brand {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  categories  String[]
+
+  ownerId     String
+  owner       User     @relation(fields: [ownerId], references: [id])
+
+  attendances Attendance[]
+  followers   Follow[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+}
+
+// ─── Location (hierarchical, self-referential) ──────────────────────────────
+
+model Location {
+  id       String @id @default(cuid())
+  name     String
+  level    Int    // 1 = country, 2 = province/state, 3 = city, etc.
+
+  parentId String?
+  parent   Location?  @relation("LocationHierarchy", fields: [parentId], references: [id])
+  children Location[] @relation("LocationHierarchy")
+
+  markets  Market[]
+}
+
+// ─── Markets ────────────────────────────────────────────────────────────────
+
+model Market {
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+
+  address    String
+  latitude   Float?
+  longitude  Float?
+  locationId String
+  location   Location @relation(fields: [locationId], references: [id])
+
+  active   Boolean @default(true)
+  verified Boolean @default(false)
+  schedule Json
+
+  organizerId String?
+  organizer   User?   @relation(fields: [organizerId], references: [id])
+  attendances Attendance[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+}
+
+// ─── Attendances ─────────────────────────────────────────────────────────────
+
+model Attendance {
+  id        String   @id @default(cuid())
+  brandId   String
+  marketId  String
+  date      DateTime @db.Date
+  confirmed Boolean  @default(true)
+
+  brand  Brand  @relation(fields: [brandId],  references: [id])
+  market Market @relation(fields: [marketId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([brandId, marketId, date])
+}
+
+// ─── Follows ─────────────────────────────────────────────────────────────────
+
+model Follow {
+  id         String @id @default(cuid())
+  followerId String
+  brandId    String
+
+  follower User  @relation(fields: [followerId], references: [id])
+  brand    Brand @relation(fields: [brandId],    references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@unique([followerId, brandId])
+}

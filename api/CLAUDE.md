@@ -4,21 +4,23 @@ NestJS + TypeScript + Prisma + PostgreSQL + BullMQ + Redis
 
 ## Commands
 
+> All commands must run inside the Docker container — never on the host.
+
 ```bash
-npm run start:dev    # dev server with watch at localhost:3000
-npm run build        # production build
-npm run start:prod   # run production build
-npm run typecheck    # tsc --noEmit
-npm run lint         # eslint
-npx prisma migrate dev       # run migrations
-npx prisma migrate deploy    # deploy migrations (production)
-npx prisma studio            # open Prisma Studio
+docker compose exec api npm run start:dev       # dev server with watch
+docker compose exec api npm run build           # production build
+docker compose exec api npm run start:prod      # run production build
+docker compose exec api npm run typecheck       # tsc --noEmit
+docker compose exec api npm run lint            # eslint
+docker compose exec api npx prisma migrate dev  # run migrations
+docker compose exec api npx prisma migrate deploy  # deploy migrations (production)
+docker compose exec api npx prisma studio       # open Prisma Studio
 ```
 
 ## Stack
 
-- **NestJS 10** — framework
-- **Prisma** — ORM
+- **NestJS 11** — framework
+- **Prisma 7** + `@prisma/adapter-pg` — ORM with PostgreSQL driver adapter
 - **PostgreSQL** — main database
 - **BullMQ** — job queues
 - **Redis** — BullMQ broker
@@ -29,12 +31,26 @@ npx prisma studio            # open Prisma Studio
 ## Module structure
 
 ```
-src/modules/
-├── auth/           → register, login, JWT strategy, guards
+src/
+├── app.module.ts
+├── main.ts
+├── auth/           → register, login, JWT strategy
 ├── users/          → profile, role activation
-├── markets/        → market CRUD, search, claim
+├── brands/         → vendor brand profiles
+├── markets/        → market CRUD and search
 ├── attendances/    → confirm/cancel vendor attendance
-└── notifications/  → BullMQ jobs for email notifications
+├── locations/      → geographic hierarchy (country → province → city)
+├── notifications/  → BullMQ jobs for email notifications
+├── prisma/         → PrismaService
+└── common/         → shared infrastructure (always in subdirectories)
+    ├── decorators/
+    ├── dto/
+    ├── filters/
+    ├── guards/
+    ├── interceptors/
+    ├── selects/
+    ├── utils/
+    └── validators/
 ```
 
 ## Environment variables
@@ -53,15 +69,37 @@ FRONTEND_URL=http://localhost:5173
 
 ## API conventions
 
-- REST: `GET /markets`, `POST /markets/:id/attendances`, etc.
-- All responses: `{ data, meta?, error? }`
+- REST: `GET /api/v1/markets`, `POST /api/v1/markets/:id/attendances`, etc.
+- All responses: `{ data: T }` (wrapped by ResponseInterceptor automatically — never wrap manually)
+- Paginated responses: `{ data: { items: T[], pagination: { page, limit, total, pages } } }`
+- Errors: `{ error: { statusCode, message } }`
 - Semantic HTTP errors: 400, 401, 403, 404, 409, 500
 - Auth via Bearer JWT header
-- DTOs for all request bodies with class-validator decorators
+
+## Key conventions
+
+- **Soft deletes**: all models have `deletedAt DateTime?`; always filter `{ deletedAt: null }` in queries
+- **common/ subdirectories**: files in `src/common/` must always be inside a named subdirectory — never at the root of common/
+- **Pagination**: use `$transaction([count, findMany])` + `paginate(dto)` + `paginatedResponse(data, total, dto)`
+- **Ownership checks**: fetch entity first, throw `ForbiddenException` if `ownerId !== userId`
+- **Async email**: always enqueue a BullMQ job — never send email synchronously
+- **English**: all code and comments in English
 
 ## Notes
 
-- Guards: `JwtAuthGuard` (authenticated), `RolesGuard` (role-based)
-- Roles are stored as a string array on the User model: `['visitor', 'vendor']`
-- Jobs are fired in the `attendances` module when an attendance is confirmed
-- Never send emails synchronously — always via BullMQ job
+- Guards: `JwtAuthGuard` (global, authenticated), `RolesGuard` (global, role-based)
+- `@Public()` marks routes that skip JwtAuthGuard
+- `@Roles('vendor')` restricts routes to that role
+- Roles are stored as a `String[]` on the User model and are additive: `['visitor', 'vendor']`
+- Role granting uses a raw SQL `ARRAY(SELECT DISTINCT unnest(roles))` deduplication query
+
+## Specialized agents
+
+Four sub-agents are available in `.claude/agents/` for targeted tasks:
+
+| Agent | When to use |
+|---|---|
+| `api-architect` | Design new modules, endpoints, DTOs, Prisma schema changes |
+| `api-standards` | Research NestJS/Prisma/security best practices and apply them |
+| `api-reviewer` | Read-only code review: quality, security, convention audit |
+| `api-tester` | Write Jest unit and integration tests for services/controllers |

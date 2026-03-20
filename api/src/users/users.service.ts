@@ -1,15 +1,28 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 
 @Injectable()
 export class UsersService {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  findMe(_userId: string): Promise<unknown> {
-    throw new Error('TODO');
+  constructor(private readonly prisma: PrismaService) {}
+
+  async findMe(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      omit: { password: true },
+    });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    return user;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  updateMe(_userId: string, _dto: UpdateProfileDto): Promise<unknown> {
-    throw new Error('TODO');
+  async updateMe(userId: string, dto: UpdateProfileDto) {
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data: dto,
+      omit: { password: true },
+    });
+    return user;
   }
 }

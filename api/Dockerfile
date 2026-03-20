@@ -1,4 +1,7 @@
 FROM node:22-alpine
 WORKDIR /app
-
-CMD ["sh", "-c", "npm install && npx prisma generate && npm run start:dev"]
+COPY package*.json ./
+RUN npm install
+COPY . .
+RUN npx prisma generate
+CMD ["npm", "run", "start:dev"]

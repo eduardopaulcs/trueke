@@ -1,6 +1,9 @@
-import { AttendanceStatus } from '@prisma/client';
+import { IsBoolean, IsDateString } from 'class-validator';
 
 export class UpsertAttendanceDto {
+  @IsDateString()
   date: string;
-  status: AttendanceStatus;
+
+  @IsBoolean()
+  confirmed: boolean;
 }

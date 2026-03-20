@@ -85,11 +85,11 @@ model Market {
 // ─── Attendances ─────────────────────────────────────────────────────────────
 
 model Attendance {
-  id       String           @id @default(cuid())
-  brandId  String
-  marketId String
-  date     DateTime         @db.Date
-  status   AttendanceStatus @default(CONFIRMED)
+  id        String   @id @default(cuid())
+  brandId   String
+  marketId  String
+  date      DateTime @db.Date
+  confirmed Boolean  @default(true)
 
   brand  Brand  @relation(fields: [brandId],  references: [id])
   market Market @relation(fields: [marketId], references: [id])
@@ -98,11 +98,6 @@ model Attendance {
   updatedAt DateTime @updatedAt
 
   @@unique([brandId, marketId, date])
-}
-
-enum AttendanceStatus {
-  CONFIRMED
-  CANCELLED
 }
 
 // ─── Follows ─────────────────────────────────────────────────────────────────

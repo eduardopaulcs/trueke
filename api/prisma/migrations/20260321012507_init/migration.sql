@@ -1,6 +1,3 @@
--- CreateEnum
-CREATE TYPE "AttendanceStatus" AS ENUM ('CONFIRMED', 'CANCELLED');
-
 -- CreateTable
 CREATE TABLE "User" (
     "id" TEXT NOT NULL,
@@ -65,7 +62,7 @@ CREATE TABLE "Attendance" (
     "brandId" TEXT NOT NULL,
     "marketId" TEXT NOT NULL,
     "date" DATE NOT NULL,
-    "status" "AttendanceStatus" NOT NULL DEFAULT 'CONFIRMED',
+    "confirmed" BOOLEAN NOT NULL DEFAULT true,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 

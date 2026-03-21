@@ -1,7 +1,7 @@
 import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, Put, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { Public } from '../common/decorators/public.decorator';
+import { OptionalAuth } from '../common/decorators/optional-auth.decorator';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { BrandsService } from './brands.service';
 import { CreateBrandDto } from './dto/create-brand.dto';
@@ -18,16 +18,22 @@ export class BrandsController {
     return this.brandsService.create(user.id, dto);
   }
 
-  @Public()
+  @OptionalAuth()
   @Get()
-  findAll(@Query() pagination: PaginationDto) {
-    return this.brandsService.findAll(pagination);
+  findAll(
+    @Query() pagination: PaginationDto,
+    @CurrentUser() user?: { id: string } | null,
+  ) {
+    return this.brandsService.findAll(pagination, user?.id ?? null);
   }
 
-  @Public()
+  @OptionalAuth()
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.brandsService.findOne(id);
+  findOne(
+    @Param('id') id: string,
+    @CurrentUser() user?: { id: string } | null,
+  ) {
+    return this.brandsService.findOne(id, user?.id ?? null);
   }
 
   @ApiBearerAuth()

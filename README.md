@@ -11,9 +11,9 @@ Argentine marketplace for street market (feria) vendors and visitors.
 | | |
 |---|---|
 | **Frontend** | React 19 · TypeScript · Vite · Tailwind CSS v4 · React Router v7 · TanStack Query v5 |
-| **Backend** | NestJS 11 · TypeScript · Prisma · PostgreSQL |
+| **Backend** | NestJS 11 · TypeScript · Prisma 7 · PostgreSQL |
 | **Queue** | BullMQ · Redis |
-| **Auth** | Passport.js · JWT |
+| **Auth** | Passport.js · JWT · HttpOnly cookies |
 | **Dev environment** | Docker Compose |
 
 ---
@@ -69,16 +69,27 @@ trueke/
 ├── api/              # NestJS backend
 │   ├── prisma/       # Database schema and migrations
 │   ├── src/
-│   │   └── modules/  # Feature modules (auth, users, markets, ...)
+│   │   ├── auth/           # Register, login, logout, JWT strategy
+│   │   ├── users/          # Profile, role activation
+│   │   ├── brands/         # Vendor brand profiles
+│   │   ├── markets/        # Market CRUD and search
+│   │   ├── attendances/    # Confirm/cancel vendor attendance
+│   │   ├── locations/      # Geographic hierarchy
+│   │   ├── notifications/  # BullMQ jobs for email notifications
+│   │   └── common/         # Guards, decorators, interceptors, utils
 │   └── .env.example
 ├── web/              # React frontend
 │   ├── src/
-│   │   ├── components/
-│   │   ├── hooks/
-│   │   ├── pages/
-│   │   ├── services/   # Axios wrappers — all API calls go here
-│   │   ├── stores/
-│   │   └── types/
+│   │   ├── lib/        # Axios client, QueryClient, query key factory, date utils
+│   │   ├── errors/     # AppError class, HTTP → Spanish message mapping
+│   │   ├── types/      # Domain types
+│   │   ├── services/   # API adapters — one file per domain
+│   │   ├── stores/     # AuthProvider (cookie-based session)
+│   │   ├── hooks/      # TanStack Query wrappers, useAuth()
+│   │   ├── router/     # createBrowserRouter, ProtectedRoute
+│   │   ├── schemas/    # Zod validation schemas
+│   │   ├── components/ # Reusable UI components
+│   │   └── pages/      # Route-level compositions
 │   └── .env.example
 └── bin/              # Dev scripts
 ```
@@ -89,7 +100,7 @@ trueke/
 
 - **User** — single registration, additive roles: `visitor` → `vendor` → `organizer`
 - **Market** — a street market with location, schedule, and status
-- **Attendance** — a vendor confirming they'll be at a market on a specific date (the core entity)
+- **Attendance** — a vendor confirming or cancelling presence at a market on a specific date (`confirmed: boolean`). This is the core entity.
 - **Follow** — a visitor following a vendor to get email notifications
 
 ---
@@ -103,7 +114,7 @@ trueke/
 | `DATABASE_URL` | PostgreSQL connection string |
 | `REDIS_URL` | Redis connection string |
 | `JWT_SECRET` | Secret for signing JWT tokens |
-| `JWT_EXPIRES_IN` | Token expiry (e.g. `7d`) |
+| `JWT_EXPIRES_IN` | Token expiry — session lasts until logout (e.g. `365d`) |
 | `MAIL_HOST` | SMTP host |
 | `MAIL_PORT` | SMTP port |
 | `MAIL_USER` | SMTP user |
@@ -115,7 +126,9 @@ trueke/
 
 | Variable | Description |
 |----------|-------------|
-| `VITE_API_URL` | Base URL for API requests (e.g. `http://localhost:3000/api`) |
+| `VITE_API_URL` | Base URL for API requests (e.g. `http://localhost:3000/api/v1`) |
+
+> Auth is cookie-based. The frontend never handles the JWT — it is stored in an HttpOnly cookie set by the API on login/register and cleared on logout.
 
 ---
 

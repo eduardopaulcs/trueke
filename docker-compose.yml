@@ -23,6 +23,7 @@ services:
 
   api:
     build: ./api
+    user: "node"
     volumes:
       - ./api:/app
       - /app/node_modules
@@ -40,6 +41,7 @@ services:
 
   web:
     build: ./web
+    user: "node"
     volumes:
       - ./web:/app
       - /app/node_modules

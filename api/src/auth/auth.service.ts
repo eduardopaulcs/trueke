@@ -5,9 +5,22 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
+import { userPublicSelect } from '../common/selects/user.select';
 import { PrismaService } from '../prisma/prisma.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+
+export interface AuthResult {
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    roles: string[];
+    createdAt: Date;
+    updatedAt: Date;
+  };
+  accessToken: string;
+}
 
 @Injectable()
 export class AuthService {
@@ -16,7 +29,7 @@ export class AuthService {
     private readonly jwt: JwtService,
   ) {}
 
-  async register(dto: RegisterDto): Promise<{ accessToken: string }> {
+  async register(dto: RegisterDto): Promise<AuthResult> {
     const existing = await this.prisma.user.findUnique({
       where: { email: dto.email },
     });
@@ -33,12 +46,13 @@ export class AuthService {
         password: hashedPassword,
         roles: ['visitor'],
       },
+      select: userPublicSelect,
     });
 
-    return { accessToken: this.signToken(user.id, user.email, user.roles) };
+    return { user, accessToken: this.signToken(user.id, user.email, user.roles) };
   }
 
-  async login(dto: LoginDto): Promise<{ accessToken: string }> {
+  async login(dto: LoginDto): Promise<AuthResult> {
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email },
     });
@@ -51,7 +65,16 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    return { accessToken: this.signToken(user.id, user.email, user.roles) };
+    const publicUser = await this.prisma.user.findUniqueOrThrow({
+      where: { id: user.id },
+      select: userPublicSelect,
+    });
+
+    return { user: publicUser, accessToken: this.signToken(user.id, user.email, user.roles) };
+  }
+
+  logout(): void {
+    // Cookie clearing is handled by the controller via res.clearCookie()
   }
 
   private signToken(userId: string, email: string, roles: string[]): string {

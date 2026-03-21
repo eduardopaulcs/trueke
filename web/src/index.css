@@ -36,6 +36,6 @@
   .tag-pending { @apply text-xs font-medium px-2.5 py-1 rounded-full inline-block bg-amber-light text-primary-dark; }
 
   .card {
-    @apply bg-white border border-[#E0D5CC] rounded-[12px] p-4;
+    @apply bg-white border border-[#E0D5CC] rounded-xl p-4;
   }
 }

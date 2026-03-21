@@ -10,7 +10,23 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateBrandDto } from './dto/create-brand.dto';
 import { UpdateBrandDto } from './dto/update-brand.dto';
 
-const brandInclude = { owner: { select: userPublicSelect } };
+const brandBaseInclude = { owner: { select: userPublicSelect } };
+
+function brandInclude(userId: string | null) {
+  if (!userId) return brandBaseInclude;
+  return {
+    ...brandBaseInclude,
+    followers: { where: { followerId: userId }, select: { id: true } },
+  };
+}
+
+function withIsFollowing(
+  brand: Record<string, unknown> & { followers?: { id: string }[] },
+  userId: string | null,
+) {
+  const { followers, ...rest } = brand;
+  return { ...rest, isFollowing: userId ? (followers?.length ?? 0) > 0 : false };
+}
 
 @Injectable()
 export class BrandsService {
@@ -20,7 +36,7 @@ export class BrandsService {
     return this.prisma.$transaction(async (tx) => {
       const brand = await tx.brand.create({
         data: { ...dto, ownerId },
-        include: brandInclude,
+        include: brandBaseInclude,
       });
 
       // Grant vendor role if not already present
@@ -44,24 +60,37 @@ export class BrandsService {
     });
   }
 
-  async findAll(pagination: PaginationDto) {
+  async findAll(pagination: PaginationDto, userId: string | null) {
     const where = { deletedAt: null };
+    const include = brandInclude(userId);
     const [total, data] = await this.prisma.$transaction([
       this.prisma.brand.count({ where }),
-      this.prisma.brand.findMany({ where, include: brandInclude, orderBy: { name: 'asc' }, ...paginate(pagination) }),
+      this.prisma.brand.findMany({
+        where,
+        include,
+        orderBy: { name: 'asc' },
+        ...paginate(pagination),
+      }),
     ]);
-    return paginatedResponse(data, total, pagination);
+    const items = data.map((b) =>
+      withIsFollowing(b as Record<string, unknown> & { followers?: { id: string }[] }, userId),
+    );
+    return paginatedResponse(items, total, pagination);
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, userId: string | null) {
+    const include = brandInclude(userId);
     const brand = await this.prisma.brand.findUnique({
       where: { id, deletedAt: null },
-      include: brandInclude,
+      include,
     });
     if (!brand) {
       throw new NotFoundException('Brand not found');
     }
-    return brand;
+    return withIsFollowing(
+      brand as Record<string, unknown> & { followers?: { id: string }[] },
+      userId,
+    );
   }
 
   async update(id: string, ownerId: string, dto: UpdateBrandDto) {
@@ -77,12 +106,12 @@ export class BrandsService {
     return this.prisma.brand.update({
       where: { id },
       data: dto,
-      include: brandInclude,
+      include: brandBaseInclude,
     });
   }
 
   async follow(brandId: string, followerId: string) {
-    const brand = await this.findOne(brandId);
+    const brand = await this.findBrandOrThrow(brandId);
     if (brand.ownerId === followerId) {
       throw new ForbiddenException('You cannot follow your own brand');
     }
@@ -98,11 +127,17 @@ export class BrandsService {
   }
 
   async unfollow(brandId: string, followerId: string) {
-    await this.findOne(brandId);
+    await this.findBrandOrThrow(brandId);
     await this.prisma.follow.deleteMany({
       where: { brandId, followerId },
     });
     return { brandId, followerId, unfollowed: true };
+  }
+
+  private async findBrandOrThrow(id: string) {
+    const brand = await this.prisma.brand.findUnique({ where: { id, deletedAt: null } });
+    if (!brand) throw new NotFoundException('Brand not found');
+    return brand;
   }
 
   async remove(id: string, ownerId: string) {

@@ -37,7 +37,7 @@ export function FeaturedMarketsSection({ markets, isLoading, error }: FeaturedMa
               {markets.map((market) => (
                 <div
                   key={market.id}
-                  className="snap-center shrink-0 min-w-[80vw] sm:min-w-[340px] lg:min-w-0"
+                  className="snap-center shrink-0 min-w-[80vw] sm:min-w-85 lg:min-w-0"
                 >
                   <MarketCard market={market} />
                 </div>
